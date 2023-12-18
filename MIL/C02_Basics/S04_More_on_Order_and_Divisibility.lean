@@ -39,17 +39,57 @@ example : min a b = min b a := by
     apply min_le_left
 
 example : max a b = max b a := by
-  sorry
+  apply le_antisymm
+  repeat
+    apply max_le
+    apply le_max_right
+    apply le_max_left
+
+
 example : min (min a b) c = min a (min b c) := by
-  sorry
+  apply le_antisymm
+  . show min (min a b) c ≤ min a (min b c)
+    apply le_min
+    . show min (min a b) c ≤ a
+      refine min_le_of_left_le ?_
+      exact min_le_left a b
+    . show min (min a b) c ≤ min b c
+      refine min_le_min_right c ?_
+      exact min_le_right a b
+
+  . show min a (min b c) ≤ min (min a b) c
+    apply le_min
+    . show min a (min b c) ≤ min a b
+      refine min_le_min_left a ?_
+      exact min_le_left b c
+    . show min a (min b c) ≤ c
+      refine min_le_of_right_le ?_
+      exact min_le_right b c
+
+
 theorem aux : min a b + c ≤ min (a + c) (b + c) := by
-  sorry
+  apply le_min
+  . show min a b + c ≤ a + c
+    simp [min_le_left]
+  . show min a b + c ≤ b + c
+    simp [min_le_left]
+
 example : min a b + c = min (a + c) (b + c) := by
-  sorry
+  have h: min (a + c) (b + c) + -c ≤ min a b := by
+    simp [aux]
+  apply le_antisymm
+  . show min a b + c ≤ min (a + c) (b + c)
+    apply aux
+  . show min (a + c) (b + c) ≤ min a b + c
+    linarith
+
 #check (abs_add : ∀ a b : ℝ, |a + b| ≤ |a| + |b|)
 
-example : |a| - |b| ≤ |a - b| :=
-  sorry
+example : |a| - |b| ≤ |a - b| := by
+  have h: |a| ≤ |a - b| + |b| :=
+    calc |a| = |a - b + b| := by rw [sub_add_cancel]
+         _ ≤ |a - b| + |b| := by apply abs_add
+  linarith
 end
 
 section
@@ -66,7 +106,17 @@ example : x ∣ x ^ 2 := by
    apply dvd_mul_left
 
 example (h : x ∣ w) : x ∣ y * (x * z) + x ^ 2 + w ^ 2 := by
-  sorry
+  apply dvd_add
+  . show x ∣ y * (x * z) + x ^ 2
+    apply dvd_add
+    . show x ∣ y * (x * z)
+      apply dvd_mul_of_dvd_right
+      apply dvd_mul_right
+    . show x ∣ x ^ 2
+      apply dvd_mul_left
+  . show x ∣ w ^ 2
+    apply dvd_mul_of_dvd_left
+    simp [h]
 end
 
 section
@@ -80,5 +130,3 @@ variable (m n : ℕ)
 example : Nat.gcd m n = Nat.gcd n m := by
   sorry
 end
-
-

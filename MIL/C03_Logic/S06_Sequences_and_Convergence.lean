@@ -17,14 +17,10 @@ example (a b : ℝ) : |a| = |a - b + b| := by
 example {a : ℝ} (h : 1 < a) : a < a * a := by
   convert (mul_lt_mul_right _).2 h
   · rw [one_mul]
-  exact lt_trans zero_lt_one h
+  have : (0: ℝ) < (1: ℝ) := zero_lt_one
+  exact lt_trans this h
 
 theorem convergesTo_const (a : ℝ) : ConvergesTo (fun x : ℕ ↦ a) a := by
-  intro ε εpos
-  use 0
-  intro n nge
-  rw [sub_self, abs_zero]
-  apply εpos
 
 theorem convergesTo_add {s t : ℕ → ℝ} {a b : ℝ}
       (cs : ConvergesTo s a) (ct : ConvergesTo t b) :
@@ -35,7 +31,7 @@ theorem convergesTo_add {s t : ℕ → ℝ} {a b : ℝ}
   rcases cs (ε / 2) ε2pos with ⟨Ns, hs⟩
   rcases ct (ε / 2) ε2pos with ⟨Nt, ht⟩
   use max Ns Nt
-  sorry
+
 
 theorem convergesTo_mul_const {s : ℕ → ℝ} {a : ℝ} (c : ℝ) (cs : ConvergesTo s a) :
     ConvergesTo (fun n ↦ c * s n) (c * a) := by
@@ -100,4 +96,3 @@ def ConvergesTo' (s : α → ℝ) (a : ℝ) :=
   ∀ ε > 0, ∃ N, ∀ n ≥ N, |s n - a| < ε
 
 end
-

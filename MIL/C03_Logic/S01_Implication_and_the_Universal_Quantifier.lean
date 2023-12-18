@@ -33,6 +33,8 @@ variable (ha : |a| < δ) (hb : |b| < δ)
 
 end
 
+#check mul_le_mul_of_nonneg_left
+
 theorem my_lemma3 :
     ∀ {x y ε : ℝ}, 0 < ε → ε ≤ 1 → |x| < ε → |y| < ε → |x * y| < ε := by
   intro x y ε epos ele1 xlt ylt
@@ -42,10 +44,19 @@ theorem my_lemma4 :
     ∀ {x y ε : ℝ}, 0 < ε → ε ≤ 1 → |x| < ε → |y| < ε → |x * y| < ε := by
   intro x y ε epos ele1 xlt ylt
   calc
-    |x * y| = |x| * |y| := sorry
-    _ ≤ |x| * ε := sorry
-    _ < 1 * ε := sorry
-    _ = ε := sorry
+    |x * y| = |x| * |y| := by
+      apply abs_mul x y
+    _ ≤ |x| * ε := by
+      have h: |x| ≥ 0 := by
+        apply abs_nonneg
+      refine mul_le_mul_of_nonneg_left ?h h
+      exact LT.lt.le ylt
+    _ < ε := by
+      calc
+        |x| * ε < ε * ε := by
+          exact (mul_lt_mul_right epos).mpr xlt
+        _ ≤ ε := by
+          exact (mul_le_iff_le_one_left epos).mpr ele1
 
 def FnUb (f : ℝ → ℝ) (a : ℝ) : Prop :=
   ∀ x, f x ≤ a
@@ -63,11 +74,19 @@ example (hfa : FnUb f a) (hgb : FnUb g b) : FnUb (fun x ↦ f x + g x) (a + b) :
   apply hfa
   apply hgb
 
-example (hfa : FnLb f a) (hgb : FnLb g b) : FnLb (fun x ↦ f x + g x) (a + b) :=
-  sorry
+example (hfa : FnLb f a) (hgb : FnLb g b) : FnLb (fun x ↦ f x + g x) (a + b) := by
+  intro x
+  dsimp
+  apply add_le_add
+  apply hfa
+  apply hgb
 
-example (nnf : FnLb f 0) (nng : FnLb g 0) : FnLb (fun x ↦ f x * g x) 0 :=
-  sorry
+example (nnf : FnLb f 0) (nng : FnLb g 0) : FnLb (fun x ↦ f x * g x) 0 := by
+  intro x
+  dsimp
+  apply mul_nonneg
+  apply nnf
+  apply nng
 
 example (hfa : FnUb f a) (hgb : FnUb g b) (nng : FnLb g 0) (nna : 0 ≤ a) :
     FnUb (fun x ↦ f x * g x) (a * b) :=
@@ -101,13 +120,13 @@ example (mf : Monotone f) (mg : Monotone g) : Monotone fun x ↦ f x + g x := by
   apply mg aleb
 
 example (mf : Monotone f) (mg : Monotone g) : Monotone fun x ↦ f x + g x :=
-  fun a b aleb ↦ add_le_add (mf aleb) (mg aleb)
+  fun _ _ aleb ↦ add_le_add (mf aleb) (mg aleb)
 
 example {c : ℝ} (mf : Monotone f) (nnc : 0 ≤ c) : Monotone fun x ↦ c * f x :=
-  sorry
+  fun _ _ aleb ↦ mul_le_mul_of_nonneg_left (mf aleb) nnc
 
 example (mf : Monotone f) (mg : Monotone g) : Monotone fun x ↦ f (g x) :=
-  sorry
+  fun _ _ aleb ↦ mf (mg aleb)
 
 def FnEven (f : ℝ → ℝ) : Prop :=
   ∀ x, f x = f (-x)
@@ -117,20 +136,26 @@ def FnOdd (f : ℝ → ℝ) : Prop :=
 
 example (ef : FnEven f) (eg : FnEven g) : FnEven fun x ↦ f x + g x := by
   intro x
-  calc
-    (fun x ↦ f x + g x) x = f x + g x := rfl
-    _ = f (-x) + g (-x) := by rw [ef, eg]
-
+  dsimp
+  rw [ef, eg]
 
 example (of : FnOdd f) (og : FnOdd g) : FnEven fun x ↦ f x * g x := by
-  sorry
+  intro x
+  dsimp
+  rw [of, og]
+  ring
 
 example (ef : FnEven f) (og : FnOdd g) : FnOdd fun x ↦ f x * g x := by
-  sorry
+  intro x
+  dsimp
+  rw [ef, og]
+  ring
 
 example (ef : FnEven f) (og : FnOdd g) : FnEven fun x ↦ f (g x) := by
-  sorry
-
+  intro x
+  dsimp
+  rw [ef, og]
+  simp
 end
 
 section
@@ -143,9 +168,8 @@ example : s ⊆ s := by
 
 theorem Subset.refl : s ⊆ s := fun x xs ↦ xs
 
-theorem Subset.trans : r ⊆ s → s ⊆ t → r ⊆ t := by
-  sorry
-
+theorem Subset.trans : r ⊆ s → s ⊆ t → r ⊆ t :=
+  fun h1 h2 x hxinr => h2 (h1 hxinr)
 end
 
 section
@@ -155,8 +179,10 @@ variable (s : Set α) (a b : α)
 def SetUb (s : Set α) (a : α) :=
   ∀ x, x ∈ s → x ≤ a
 
-example (h : SetUb s a) (h' : a ≤ b) : SetUb s b :=
-  sorry
+example (h : SetUb s a) (h' : a ≤ b) : SetUb s b := by
+  intro x hxins
+  apply h at hxins
+  apply le_trans hxins h'
 
 end
 
