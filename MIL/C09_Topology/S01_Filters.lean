@@ -132,8 +132,10 @@ example (x₀ : ℝ) : HasBasis (𝓝 x₀) (fun ε : ℝ ↦ 0 < ε) fun ε ↦
 
 example (u : ℕ → ℝ) (x₀ : ℝ) :
     Tendsto u atTop (𝓝 x₀) ↔ ∀ ε > 0, ∃ N, ∀ n ≥ N, u n ∈ Ioo (x₀ - ε) (x₀ + ε) := by
-  have : atTop.HasBasis (fun _ : ℕ ↦ True) Ici := atTop_basis
-  rw [this.tendsto_iff (nhds_basis_Ioo_pos x₀)]
+  have atTop_basis : atTop.HasBasis (fun _ : ℕ ↦ True) Ici := atTop_basis
+  have real_basis : (𝓝 x₀).HasBasis (fun ε : ℝ ↦ 0 < ε) fun ε ↦ Ioo (x₀ - ε) (x₀ + ε) :=
+    nhds_basis_Ioo_pos x₀
+  rw [HasBasis.tendsto_iff atTop_basis real_basis]
   simp
 
 example (P Q : ℕ → Prop) (hP : ∀ᶠ n in atTop, P n) (hQ : ∀ᶠ n in atTop, Q n) :
@@ -168,5 +170,12 @@ example (P Q R : ℕ → Prop) (hP : ∀ᶠ n in atTop, P n) (hQ : ∀ᶠ n in a
 #check neBot_of_le
 
 example (u : ℕ → ℝ) (M : Set ℝ) (x : ℝ) (hux : Tendsto u atTop (𝓝 x))
-    (huM : ∀ᶠ n in atTop, u n ∈ M) : x ∈ closure M :=
-  sorry
+    (huM : ∀ᶠ n in atTop, u n ∈ M) : x ∈ closure M := by
+  rw [mem_closure_iff_clusterPt]
+  simp [ClusterPt]
+  have h : map u atTop ≤ 𝓝 x ⊓ 𝓟 M := by
+    apply le_inf
+    . exact hux
+    . rw [le_principal_iff]
+      exact huM
+  apply neBot_of_le h

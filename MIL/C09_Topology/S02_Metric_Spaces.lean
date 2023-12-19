@@ -49,7 +49,14 @@ example {X Y : Type*} [MetricSpace X] [MetricSpace Y] {f : X → Y} (hf : Contin
   hf.fst'.dist hf.snd'
 
 example {f : ℝ → X} (hf : Continuous f) : Continuous fun x : ℝ ↦ f (x ^ 2 + x) :=
-  sorry
+  by continuity
+example {f : ℝ → X} (hf : Continuous f) : Continuous fun x : ℝ ↦ f (x ^ 2 + x) := by
+  apply hf.comp
+  apply Continuous.add
+  apply Continuous.pow
+  apply continuous_id
+  apply continuous_id
+
 
 example {X Y : Type*} [MetricSpace X] [MetricSpace Y] (f : X → Y) (a : X) :
     ContinuousAt f a ↔ ∀ ε > 0, ∃ δ > 0, ∀ {x}, dist x a < δ → dist (f x) (f a) < ε :=
@@ -83,8 +90,23 @@ example {s : Set X} : a ∈ closure s ↔ ∀ ε > 0, ∃ b ∈ s, a ∈ Metric.
   Metric.mem_closure_iff
 
 example {u : ℕ → X} (hu : Tendsto u atTop (𝓝 a)) {s : Set X} (hs : ∀ n, u n ∈ s) :
-    a ∈ closure s :=
-  sorry
+    a ∈ closure s := by
+  apply mem_closure_iff.mpr
+  intro s' s'open ains'
+  have : ∃ n, u n ∈ s' := by
+    rw [Metric.tendsto_atTop] at hu
+    have : ∃ ε > 0, Metric.ball a ε ⊆ s' := by
+      rw [Metric.isOpen_iff] at s'open
+      exact s'open a ains'
+    obtain ⟨ε, εpos, hε⟩ := this
+    rcases hu ε εpos with ⟨N, hN⟩
+    use N
+    exact hε (hN N (le_refl N))
+  obtain ⟨n, hn⟩ := this
+  use u n
+  simp
+  exact ⟨hn, hs n⟩
+
 
 example {x : X} {s : Set X} : s ∈ 𝓝 x ↔ ∃ ε > 0, Metric.ball x ε ⊆ s :=
   Metric.nhds_basis_ball.mem_iff
@@ -204,4 +226,3 @@ example [CompleteSpace X] (f : ℕ → Set X) (ho : ∀ n, IsOpen (f n)) (hd : �
   have I : ∀ n, ∀ m ≥ n, closedBall (c m) (r m) ⊆ closedBall (c n) (r n) := by sorry
   have yball : ∀ n, y ∈ closedBall (c n) (r n) := by sorry
   sorry
-

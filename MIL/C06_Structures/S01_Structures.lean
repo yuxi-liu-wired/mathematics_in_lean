@@ -14,8 +14,7 @@ structure Point where
 #check Point.ext
 
 example (a b : Point) (hx : a.x = b.x) (hy : a.y = b.y) (hz : a.z = b.z) : a = b := by
-  ext
-  repeat' assumption
+  ext <;> assumption
 
 def myPoint1 : Point where
   x := 2
@@ -206,4 +205,3 @@ variable (s : StdSimplex)
 #check s.2
 
 end
-
