@@ -49,7 +49,18 @@ theorem dvd_fac {i n : ℕ} (ipos : 0 < i) (ile : i ≤ n) : i ∣ fac n := by
 theorem pow_two_le_fac (n : ℕ) : 2 ^ (n - 1) ≤ fac n := by
   rcases n with _ | n
   · simp [fac]
-  sorry
+  . simp [fac]
+    induction' n with n ih
+    · simp [fac]
+    . simp [Nat.succ_eq_add_one, fac]
+      ring_nf
+      calc
+        2 ^ n * 2 ≤ ((n + 1) * fac n) * 2 := by linarith
+        _ = (n + 1) * (2 * fac n) := by ring
+        _ ≤ (n + 1) * (2 * fac n) + n * fac n + n ^ 2 * fac n := by
+          have : n * fac n + n ^ 2 * fac n ≥ 0 := by simp
+          linarith
+        _ = n * fac n * 3 + n ^ 2 * fac n + fac n * 2 := by ring
 section
 
 variable {α : Type*} (s : Finset ℕ) (f : ℕ → ℕ) (n : ℕ)
@@ -100,7 +111,11 @@ theorem sum_id (n : ℕ) : ∑ i in range (n + 1), i = n * (n + 1) / 2 := by
   ring
 
 theorem sum_sqr (n : ℕ) : ∑ i in range (n + 1), i ^ 2 = n * (n + 1) * (2 * n + 1) / 6 := by
-  sorry
+  symm; apply Nat.div_eq_of_eq_mul_right (by norm_num : 0 < 6)
+  induction' n with n ih
+  · simp
+  rw [Finset.sum_range_succ, mul_add 6, ← ih, Nat.succ_eq_add_one]
+  ring
 end
 
 inductive MyNat

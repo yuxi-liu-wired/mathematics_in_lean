@@ -39,8 +39,11 @@ example : Nat.Prime 3 :=
 #check Nat.prime_two.dvd_mul
 
 theorem even_of_even_sqr {m : ℕ} (h : 2 ∣ m ^ 2) : 2 ∣ m := by
-  rw [pow_two, Nat.prime_two.dvd_mul] at h
-  cases h <;> assumption
+  rw [pow_two] at h
+  rw [Nat.Prime.dvd_mul] at h
+  simp at h
+  assumption
+  exact Nat.prime_two
 
 example {m : ℕ} (h : 2 ∣ m ^ 2) : 2 ∣ m :=
   Nat.Prime.dvd_of_dvd_pow Nat.prime_two h
@@ -52,23 +55,68 @@ example (a b c : Nat) (h : a * b = a * c) (h' : a ≠ 0) : b = c :=
 example {m n : ℕ} (coprime_mn : m.Coprime n) : m ^ 2 ≠ 2 * n ^ 2 := by
   intro sqr_eq
   have : 2 ∣ m := by
-    sorry
+    have : 2 ∣ (m ^ 2) := by
+      rw [sqr_eq]
+      apply Nat.dvd_mul_right
+    exact even_of_even_sqr this
   obtain ⟨k, meq⟩ := dvd_iff_exists_eq_mul_left.mp this
   have : 2 * (2 * k ^ 2) = 2 * n ^ 2 := by
-    rw [← sqr_eq, meq]
-    ring
-  have : 2 * k ^ 2 = n ^ 2 :=
-    sorry
+    calc
+      2 * (2 * k ^ 2) = (k * 2) ^ 2 := by ring
+      _ = m ^ 2 := by rw [meq]
+      _ = 2 * n ^ 2 := by rw [sqr_eq]
+  have : 2 * k ^ 2 = n ^ 2 := by
+    linarith
   have : 2 ∣ n := by
-    sorry
+    have : 2 ∣ (n ^ 2) := by
+      apply Dvd.intro <;> assumption
+    exact even_of_even_sqr this
   have : 2 ∣ m.gcd n := by
-    sorry
-  have : 2 ∣ 1 := by
-    sorry
-  norm_num at this
+    apply Nat.dvd_gcd <;> assumption
+  have : 2 ≤ 1 := by
+    apply Nat.le_of_dvd
+    linarith
+    have gcdmn : Nat.gcd m n = 1 := by
+      apply coprime_mn
+    rwa [← gcdmn]
+  linarith
 
 example {m n p : ℕ} (coprime_mn : m.Coprime n) (prime_p : p.Prime) : m ^ 2 ≠ p * n ^ 2 := by
-  sorry
+  intro sqr_eq
+  have : p ∣ m := by
+    have : p ∣ (m ^ 2) := by
+      rw [sqr_eq]
+      apply Nat.dvd_mul_right
+    exact prime_p.dvd_of_dvd_pow this
+  obtain ⟨k, meq⟩ := dvd_iff_exists_eq_mul_left.mp this
+  have : p * (p * k ^ 2) = p * n ^ 2 := by
+    calc
+      p * (p * k ^ 2) = (k * p) ^ 2 := by ring
+      _ = m ^ 2 := by rw [meq]
+      _ = p * n ^ 2 := by rw [sqr_eq]
+  have : p * k ^ 2 = n ^ 2 := by
+    have : p > 0 := by
+      apply Nat.Prime.pos
+      assumption
+    apply Nat.mul_left_cancel this
+    linarith
+  have : p ∣ n := by
+    have : p ∣ (n ^ 2) := by
+      apply Dvd.intro <;> assumption
+    exact prime_p.dvd_of_dvd_pow this
+  have : p ∣ m.gcd n := by
+    apply Nat.dvd_gcd <;> assumption
+  have : p ≤ 1 := by
+    apply Nat.le_of_dvd
+    linarith
+    have gcdmn : Nat.gcd m n = 1 := by
+      apply coprime_mn
+    rwa [← gcdmn]
+  have : p > 1 := by
+    apply Nat.Prime.one_lt
+    assumption
+  linarith
+
 #check Nat.factors
 #check Nat.prime_of_mem_factors
 #check Nat.prod_factors
@@ -117,4 +165,3 @@ example {m n k r : ℕ} (nnz : n ≠ 0) (pow_eq : m ^ k = r * n ^ k) {p : ℕ} (
   sorry
 
 #check multiplicity
-
