@@ -12,16 +12,15 @@ class One₁ (α : Type) where
 
 #check One₁.one -- One₁.one {α : Type} [self : One₁ α] : α
 
+example (α : Type) [One₁ α] : α := One₁.one
+
+example (α : Type) [One₁ α] := (One₁.one : α)
+
 @[class] structure One₂ (α : Type) where
   /-- The element one -/
   one : α
 
 #check One₂.one
-
-
-example (α : Type) [One₁ α] : α := One₁.one
-
-example (α : Type) [One₁ α] := (One₁.one : α)
 
 @[inherit_doc]
 notation "𝟙" => One₁.one
