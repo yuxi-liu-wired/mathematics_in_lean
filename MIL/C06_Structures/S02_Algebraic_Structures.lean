@@ -16,7 +16,7 @@ structure Group₁Cat where
   α : Type*
   str : Group₁ α
 
-section
+section equivalence
 variable (α β γ : Type*)
 variable (f : α ≃ β) (g : β ≃ γ)
 
@@ -29,6 +29,8 @@ variable (f : α ≃ β) (g : β ≃ γ)
 #check (f.symm : β ≃ α)
 #check (f.trans g : α ≃ γ)
 
+-- Mathlib has declared a coercion from Equiv α β to the function type α → β
+-- so we can omit writing .toFun and have Lean insert it for us.
 example (x : α) : (f.trans g).toFun x = g.toFun (f.toFun x) :=
   rfl
 
@@ -38,11 +40,14 @@ example (x : α) : (f.trans g) x = g (f x) :=
 example : (f.trans g : α → γ) = g ∘ f :=
   rfl
 
-end
+end equivalence
 
+-- (α ≃ α) is by definition the same as (Equiv.Perm α)
+-- It is a Type, and we would probably want to construct Terms for them.
 example (α : Type*) : Equiv.Perm α = (α ≃ α) :=
   rfl
 
+-- (f ∘ g) = (mul f g) = (Equiv.trans g f) = (g.trans f)
 def permGroup {α : Type*} : Group₁ (Equiv.Perm α)
     where
   mul f g := Equiv.trans g f
@@ -54,8 +59,14 @@ def permGroup {α : Type*} : Group₁ (Equiv.Perm α)
   mul_left_inv := Equiv.self_trans_symm
 
 structure AddGroup₁ (α : Type*) where
-  (add : α → α → α)
-  -- fill in the rest
+  add : α → α → α
+  zero : α
+  neg : α → α
+  add_assoc : ∀ x y z : α, add (add x y) z = add x (add y z)
+  add_zero : ∀ x : α, add x zero = x
+  zero_add : ∀ x : α, add zero x = x
+  add_left_neg : ∀ x : α, add (neg x) x = zero
+
 @[ext]
 structure Point where
   x : ℝ
@@ -67,11 +78,35 @@ namespace Point
 def add (a b : Point) : Point :=
   ⟨a.x + b.x, a.y + b.y, a.z + b.z⟩
 
-def neg (a : Point) : Point := sorry
+def neg (a : Point) : Point := ⟨-a.x, -a.y, -a.z⟩
 
-def zero : Point := sorry
+def zero : Point := ⟨0, 0, 0⟩
 
-def addGroupPoint : AddGroup₁ Point := sorry
+def addGroupPoint : AddGroup₁ Point := {
+  add := Point.add,
+  zero := Point.zero,
+  neg := Point.neg,
+  add_assoc := by
+    intro a b c
+    dsimp [Point.add]
+    ring
+  ,
+  add_zero := by
+    intro a
+    dsimp [Point.add, Point.zero]
+    ring
+    ,
+  zero_add := by
+    intro a
+    dsimp [Point.add, Point.zero]
+    ring
+    ,
+  add_left_neg := by
+    intro a
+    dsimp [Point.add, Point.zero, Point.neg]
+    ring
+    ,
+}
 
 end Point
 
@@ -103,6 +138,8 @@ class Group₂ (α : Type*) where
   one_mul : ∀ x : α, mul one x = x
   mul_left_inv : ∀ x : α, mul (inv x) x = one
 
+-- For each α, the type (Equiv.Perm α) is an instance of the type class (Group₂ α).
+-- Group₂ is a function of type (Type → Type Class).
 instance {α : Type*} : Group₂ (Equiv.Perm α) where
   mul f g := Equiv.trans g f
   one := Equiv.refl α
@@ -137,6 +174,9 @@ instance : Inhabited Point where default := ⟨0, 0, 0⟩
 example : ([] : List Point).headI = default :=
   rfl
 
+-- Point is an instance of the type class Add.
+-- This means that we can use the + notation for Point.add.
+-- + is an alias for Add.add, and for instances of Point, Add.add is Point.add.
 instance : Add Point where add := Point.add
 
 section

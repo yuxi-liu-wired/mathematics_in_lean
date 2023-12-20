@@ -120,8 +120,12 @@ instance instCommRing : CommRing gaussInt where
   mul_comm := by
     intros
     ext <;> simp <;> ring
-  zero_mul := sorry
-  mul_zero := sorry
+  zero_mul := by
+    intro a
+    ext <;> simp
+  mul_zero := by
+    intro a
+    ext <;> simp
 
 @[simp]
 theorem sub_re (x y : gaussInt) : (x - y).re = x.re - y.re :=
@@ -133,7 +137,7 @@ theorem sub_im (x y : gaussInt) : (x - y).im = x.im - y.im :=
 
 instance : Nontrivial gaussInt := by
   use 0, 1
-  rw [Ne, gaussInt.ext_iff]
+  dsimp [zero_def, one_def]
   simp
 
 end gaussInt
@@ -175,7 +179,32 @@ end Int
 
 theorem sq_add_sq_eq_zero {α : Type*} [LinearOrderedRing α] (x y : α) :
     x ^ 2 + y ^ 2 = 0 ↔ x = 0 ∧ y = 0 := by
-  sorry
+  constructor
+  . intro h
+    have x2ge : x ^ 2 ≥ 0 := by apply pow_two_nonneg
+    have y2ge : y ^ 2 ≥ 0 := by apply pow_two_nonneg
+    have x2le : x ^ 2 ≤ 0 := by
+      calc
+        x ^ 2 = 0 - y ^ 2 := by
+          rw [← h]
+          simp
+        _ = -y ^ 2 := by simp
+        _ ≤ 0 := by simp [y2ge]
+    have h1 : x ^ 2 = 0 := by
+      apply le_antisymm
+      · exact x2le
+      · exact x2ge
+    have h2 : y ^ 2 = 0 := by
+      calc
+        y ^ 2 = 0 - x ^ 2 := by
+          rw [← h]
+          simp
+        _ = -x ^ 2 := by simp
+        _ = 0 := by simp [h1]
+    exact ⟨pow_eq_zero h1, pow_eq_zero h2⟩
+  . intro h
+    simp [h.1, h.2]
+
 namespace gaussInt
 
 def norm (x : gaussInt) :=
@@ -183,13 +212,39 @@ def norm (x : gaussInt) :=
 
 @[simp]
 theorem norm_nonneg (x : gaussInt) : 0 ≤ norm x := by
-  sorry
+  calc
+    0 ≤ x.re ^ 2 := by apply pow_two_nonneg
+    _ ≤ x.re ^ 2 + x.im ^ 2 := by apply le_add_of_nonneg_right; apply pow_two_nonneg
+
 theorem norm_eq_zero (x : gaussInt) : norm x = 0 ↔ x = 0 := by
-  sorry
+  simp [norm]
+  rw [sq_add_sq_eq_zero]
+  constructor
+  . intro h
+    ext <;> simp [h]
+  . intro h
+    simp [h]
+
 theorem norm_pos (x : gaussInt) : 0 < norm x ↔ x ≠ 0 := by
-  sorry
+  constructor
+  . intro ge0 eq0
+    rw [← norm_eq_zero] at eq0
+    linarith
+  . intro h
+    simp [norm]
+    contrapose h
+    simp; simp at h
+    have : x.re ^ 2 + x.im ^ 2 ≥ 0 := by
+      calc
+        0 ≤ x.re ^ 2 := by apply pow_two_nonneg
+        _ ≤ x.re ^ 2 + x.im ^ 2 := by apply le_add_of_nonneg_right; apply pow_two_nonneg
+    have norm0 : x.re ^ 2 + x.im ^ 2 = 0 := by linarith
+    rw [sq_add_sq_eq_zero] at norm0
+    ext <;> simp [norm0.1, norm0.2]
+
 theorem norm_mul (x y : gaussInt) : norm (x * y) = norm x * norm y := by
-  sorry
+  dsimp [norm]; ring
+
 def conj (x : gaussInt) : gaussInt :=
   ⟨x.re, -x.im⟩
 
