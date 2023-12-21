@@ -9,6 +9,8 @@ class One₁ (α : Type) where
   /-- The element one -/
   one : α
 
+@[inherit_doc]
+notation "𝟙" => One₁.one
 
 #check One₁.one -- One₁.one {α : Type} [self : One₁ α] : α
 
@@ -16,40 +18,50 @@ example (α : Type) [One₁ α] : α := One₁.one
 
 example (α : Type) [One₁ α] := (One₁.one : α)
 
+instance : One₁ Bool where
+  one := true
+instance : One₁ Nat where
+  one := 1
+
+#eval (𝟙 : ℕ)
+#eval (𝟙 : Bool)
+
 @[class] structure One₂ (α : Type) where
   /-- The element one -/
   one : α
 
 #check One₂.one
-
-@[inherit_doc]
-notation "𝟙" => One₁.one
-
 example {α : Type} [One₁ α] : α := 𝟙
 
 example {α : Type} [One₁ α] : (𝟙 : α) = 𝟙 := rfl
 
-
+-- magma
 class Dia₁ (α : Type) where
   dia : α → α → α
 
 infixl:70 " ⋄ "   => Dia₁.dia
 
-
+-- associative magma
 class Semigroup₁ (α : Type) where
   toDia₁ : Dia₁ α
   /-- Diamond is associative -/
   dia_assoc : ∀ a b c : α, a ⋄ b ⋄ c = a ⋄ (b ⋄ c)
 
-
 attribute [instance] Semigroup₁.toDia₁
 
 example {α : Type} [Semigroup₁ α] (a b : α) : α := a ⋄ b
 
-
 class Semigroup₂ (α : Type) extends Dia₁ α where
-  /-- Diamond is associative -/
   dia_assoc : ∀ a b c : α, a ⋄ b ⋄ c = a ⋄ (b ⋄ c)
+
+-- unital magma
+class UnitalMagma₁ (α : Type) [One₁ α] extends Dia₁ α where
+  one_dia : ∀ a : α, 𝟙 ⋄ a = a
+  dia_one : ∀ a : α, a ⋄ 𝟙 = a
+
+-- commutative magma
+class CommMagma₁ (α : Type) extends Dia₁ α where
+  dia_comm : ∀ a b : α, a ⋄ b = b ⋄ a
 
 example {α : Type} [Semigroup₂ α] (a b : α) : α := a ⋄ b
 
@@ -59,7 +71,62 @@ class DiaOneClass₁ (α : Type) extends One₁ α, Dia₁ α where
   /-- One is a right neutral element for diamond -/
   dia_one : ∀ a : α, a ⋄ 𝟙 = a
 
+class Rack (α : Type) extends Dia₁ α where
+  right_distributive : ∀ a b c : α, a ⋄ (b ⋄ c) = (a ⋄ b) ⋄ (a ⋄ c)
+  right_surjection : ∀ a b : α, ∃ c : α, a ⋄ c = b
 
+class Kei (α : Type) extends Rack α where
+  involution : ∀ a b : α, a ⋄ b ⋄ b = a
+
+class Quandle (α : Type) extends Rack α where
+  idempotence : ∀ a : α, a ⋄ a = a
+
+-- Every group gives rise to a quandle
+instance (G : Type) [Group G] : Quandle G where
+  dia := fun a b ↦ a * b * a⁻¹
+  right_distributive := fun a b c ↦ by group
+  right_surjection := fun a b ↦ ⟨a⁻¹ * b * a, by group⟩
+  idempotence := fun a ↦ by group
+
+inductive Viergruppe
+  | e : Viergruppe
+  | a : Viergruppe
+  | b : Viergruppe
+  | c : Viergruppe
+deriving Repr
+
+def viergruppeMul : Viergruppe → Viergruppe → Viergruppe
+  | Viergruppe.e, x => x
+  | x, Viergruppe.e => x
+  | Viergruppe.a, Viergruppe.a => Viergruppe.e
+  | Viergruppe.b, Viergruppe.b => Viergruppe.e
+  | Viergruppe.c, Viergruppe.c => Viergruppe.e
+  | Viergruppe.a, Viergruppe.b => Viergruppe.c
+  | Viergruppe.b, Viergruppe.a => Viergruppe.c
+  | Viergruppe.a, Viergruppe.c => Viergruppe.b
+  | Viergruppe.c, Viergruppe.a => Viergruppe.b
+  | Viergruppe.b, Viergruppe.c => Viergruppe.a
+  | Viergruppe.c, Viergruppe.b => Viergruppe.a
+
+instance : Group Viergruppe where
+  mul := viergruppeMul
+  mul_assoc := by
+    intro a b c
+    cases a <;> cases b <;> cases c <;> rfl
+  one := Viergruppe.e
+  one_mul := by
+    intro a
+    cases a <;> rfl
+  mul_one := by
+    intro a
+    cases a <;> rfl
+  inv := λ x => x
+  mul_left_inv := by
+    intro a
+    cases a <;> rfl
+
+-- For example, the Viergruppe group gives rise to the Viergruppe quandle
+#eval Viergruppe.b ⋄ Viergruppe.a
 
 set_option trace.Meta.synthInstance true in
 example {α : Type} [DiaOneClass₁ α] (a b : α) : Prop := a ⋄ b = 𝟙
@@ -67,15 +134,16 @@ example {α : Type} [DiaOneClass₁ α] (a b : α) : Prop := a ⋄ b = 𝟙
 
 class Monoid₁ (α : Type) extends Semigroup₁ α, DiaOneClass₁ α
 
+#check Monoid₁.toSemigroup₁
+#check Monoid₁.toDiaOneClass₁
+
+-- Lean compiler automatically resolves the two paths to Dia₁ into the same thing.
+example {α : Type} [Monoid₁ α] :
+  (Monoid₁.toSemigroup₁.toDia₁.dia : α → α → α) = Monoid₁.toDiaOneClass₁.toDia₁.dia := rfl
 
 class Monoid₂ (α : Type) where
   toSemigroup₁ : Semigroup₁ α
   toDiaOneClass₁ : DiaOneClass₁ α
-
-
-example {α : Type} [Monoid₁ α] :
-  (Monoid₁.toSemigroup₁.toDia₁.dia : α → α → α) = Monoid₁.toDiaOneClass₁.toDia₁.dia := rfl
-
 
 /- Monoid₂.mk {α : Type} (toSemigroup₁ : Semigroup₁ α) (toDiaOneClass₁ : DiaOneClass₁ α) : Monoid₂ α -/
 #check Monoid₂.mk
@@ -83,9 +151,6 @@ example {α : Type} [Monoid₁ α] :
 /- Monoid₁.mk {α : Type} [toSemigroup₁ : Semigroup₁ α] [toOne₁ : One₁ α] (one_dia : ∀ (a : α), 𝟙 ⋄ a = a) (dia_one : ∀ (a : α), a ⋄ 𝟙 = a) : Monoid₁ α -/
 #check Monoid₁.mk
 
-
-#check Monoid₁.toSemigroup₁
-#check Monoid₁.toDiaOneClass₁
 
 
 class Inv₁ (α : Type) where
@@ -112,13 +177,21 @@ example {M : Type} [Monoid₁ M] {a b c : M} (hba : b ⋄ a = 𝟙) (hac : a ⋄
   rw [← one_dia c, ← hba, dia_assoc, hac, dia_one b]
 
 
-lemma inv_eq_of_dia [Group₁ G] {a b : G} (h : a ⋄ b = 𝟙) : a⁻¹ = b :=
-  sorry
+lemma inv_eq_of_dia [Group₁ G] {a b : G} (h : a ⋄ b = 𝟙) : a⁻¹ = b := by
+  calc
+    a⁻¹ = a⁻¹ ⋄ 𝟙 := by rw [dia_one]
+    _ = a⁻¹ ⋄ (a ⋄ b) := by rw [h]
+    _ = (a⁻¹ ⋄ a) ⋄ b := by rw [dia_assoc]
+    _ = 𝟙 ⋄ b := by rw [inv_dia]
+    _ = b := by rw [one_dia]
 
-lemma dia_inv [Group₁ G] (a : G) : a ⋄ a⁻¹ = 𝟙 :=
-  sorry
+lemma double_inv [Group₁ G] (a : G) : (a⁻¹)⁻¹ = a := by
+  apply inv_eq_of_dia; rw [inv_dia]
 
-
+lemma dia_inv [Group₁ G] (a : G) : a ⋄ a⁻¹ = 𝟙 := by
+  calc
+    a ⋄ a⁻¹ = (a⁻¹)⁻¹ ⋄ a⁻¹ := by rw [double_inv]
+    _ = 𝟙 := by rw [inv_dia]
 
 
 class AddSemigroup₃ (α : Type) extends Add α where
@@ -201,10 +274,36 @@ class Ring₃ (R : Type) extends AddGroup₃ R, Monoid₃ R, MulZeroClass R wher
   /-- Multiplication is right distributive over addition -/
   right_distrib : ∀ a b c : R, (a + b) * c = a * c + b * c
 
+-- a + a + b + b = 2 * a + 2 * b = 2 * (a + b) = a + b + a + b
+-- then cancel on both sides to get (a + b = b + a)
 instance {R : Type} [Ring₃ R] : AddCommGroup₃ R :=
 { Ring₃.toAddGroup₃ with
   add_comm := by
-    sorry }
+    intro a b
+    have h : a + a + b + b = (a + b) + (a + b) := by
+      calc
+        a + a + b + b = (a + a) + (b + b) := by rw [add_assoc₃, add_assoc₃]
+        _ = (1 * a + 1 * a) + (1 * b + 1 * b) := by simp
+        _ = (1 + 1) * a + (1 * b + 1 * b) := by
+          rw [← Ring₃.right_distrib 1 1 a]
+        _ = (1 + 1) * a + (1 + 1) * b := by
+          rw [← Ring₃.right_distrib 1 1 b]
+        _ = (1 + 1) * (a + b) := by rw [Ring₃.left_distrib]
+        _ = (1 * (a + b) + 1 * (a + b)) := by
+          rw [Ring₃.right_distrib 1 1 (a + b)]
+        _ = (a + b) + (a + b):= by simp
+    calc
+      a + b = 0 + (a + b) + 0 := by simp
+      _ = (-a + a) + (a + b) + (b + -b) := by simp
+      _ = (-a) + (a + a + b + b) + (-b) := by
+        repeat rw [add_assoc₃]
+      _ = (-a) + ((a + b)+ (a + b)) + (-b) := by
+        rw [h]
+      _ = b + a := by
+        simp [add_assoc₃]
+        rw [← (add_assoc₃ (-a) a (b + a))]
+        simp
+}
 
 instance : Ring₃ ℤ where
   add := (· + ·)
